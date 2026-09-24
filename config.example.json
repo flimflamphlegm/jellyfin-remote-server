@@ -1,0 +1,7 @@
+{
+  "jellyfin_url": "http://localhost:8096",
+  "api_key": "paste-your-api-key-here",
+  "port": 8097,
+  "device_filter": "",
+  "user_filter": ""
+}

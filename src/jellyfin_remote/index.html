@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jellyfin Remote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<style>
+/*
+  Styling follows pear-desktop-remote-server's minimal mode (#030303 / #131313 / #fff,
+  340px card, 6px track bar). Written for old Android browsers: no CSS variables,
+  no flex gap, and a plain fallback before every dvh / env() / calc() value.
+*/
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #030303; color: #fff; text-align: center; margin: 0; padding: 6px 0; padding: 6px env(safe-area-inset-right) 6px env(safe-area-inset-left); display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; min-height: 100vh; min-height: 100dvh; overflow: hidden; }
+.card { background: #131313; padding: 14px; border-radius: 20px; border: 1px solid #222; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 94%; max-width: 340px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: space-between; justify-content: space-between; margin: 0 auto; position: relative; overflow: hidden; max-height: -webkit-calc(100vh - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+/* Blurred artwork behind the card. A real element (not ::before + var()) so it works without CSS variables. */
+.card > .card-bg { position: absolute; top: -40px; right: -40px; bottom: -40px; left: -40px; background-color: #151515; background-position: center; background-size: cover; background-repeat: no-repeat; -webkit-filter: blur(28px) saturate(2.1) brightness(0.72); filter: blur(28px) saturate(2.1) brightness(0.72); opacity: 0.9; -webkit-transform: scale(1.15); transform: scale(1.15); z-index: 0; pointer-events: none; }
+.card::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(10,10,10,0.22); z-index: 1; pointer-events: none; }
+.art-box { width: 100%; position: relative; z-index: 2; margin: 0 auto 4px; background: transparent; border: none; border-radius: 0; overflow: visible; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.art-box::after { content: ""; display: block; padding-bottom: 100%; }
+.art-box img { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 3; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; display: block; border-radius: 12px; }
+.art-placeholder { position: absolute; top: 50%; left: 50%; z-index: 3; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); font-size: 3rem; opacity: 0.25; margin: 0; }
+.card > * { position: relative; z-index: 2; }
+.meta-container { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; margin-bottom: 4px; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.meta-container > * { margin-top: 1px; }
+.marquee-container { width: 100%; overflow: hidden; white-space: nowrap; position: relative; }
+.marquee-inner { display: inline-block; white-space: nowrap; }
+.marquee-inner .clone { display: none; }
+/* Long text scrolls: [text + 60px][copy + 60px], moved left by half its width, so it loops seamlessly. */
+.marquee-inner.is-long span { padding-right: 60px; }
+.marquee-inner.is-long .clone { display: inline; }
+@-webkit-keyframes marquee-scroll { 0%, 10% { -webkit-transform: translateX(0); } 90%, 100% { -webkit-transform: translateX(-50%); } }
+@keyframes marquee-scroll { 0%, 10% { transform: translateX(0); } 90%, 100% { transform: translateX(-50%); } }
+.marquee-inner.is-long { -webkit-animation: marquee-scroll 8s linear infinite; animation: marquee-scroll 8s linear infinite; }
+h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.9); line-height: 1.1; padding-bottom: 0; }
+.track-sub.marquee-inner { margin: 0; font-size: 1.05rem; font-weight: 500; line-height: 1.2; color: #e0e0e0; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.85); }
+.progress-panel { margin-bottom: 4px; width: 100%; pointer-events: none; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.track-bar { width: 100%; height: 6px; background: #282828; border-radius: 4px; overflow: hidden; }
+.track-fill { background: #fff; height: 100%; width: 0%; }
+.time-labels { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #ddd; text-shadow: 0 1px 2px rgba(0,0,0,0.95); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.minimal-controls { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; margin: 10px 0; -webkit-flex-shrink: 0; flex-shrink: 0; margin-top: auto; margin-bottom: 0; }
+.minimal-controls button { background: #212121; color: #aaa; border: 1px solid #333; width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin: 0 2px; padding: 0; border-radius: 10px; cursor: pointer; touch-action: manipulation; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; font-size: 0.95rem; font-weight: bold; font-family: inherit; }
+.minimal-controls button:active { -webkit-transform: scale(0.95); transform: scale(0.95); background: #333; }
+.minimal-controls button.active { background: #3a3a3a; border-color: #555; color: #fff; }
+.minimal-controls button svg { width: 20px; height: 20px; fill: currentColor; }
+.minimal-controls button.active-all { background: #3a3a3a; border-color: #555; color: #fff; }
+.minimal-controls button.active-one { background: #4a4a4a; border-color: #666; color: #fff; position: relative; }
+.minimal-controls button.active-one::after { content: "1"; position: absolute; bottom: 2px; right: 2px; font-size: 9px; font-weight: bold; color: #fff; background: #212121; padding: 2px 4px; border-radius: 6px; }
+.minimal-controls button[disabled] { opacity: 0.35; }
+.minimal-controls button[disabled]:active { -webkit-transform: none; transform: none; background: #212121; }
+.status-note { margin: 8px 0 0; font-size: 0.75rem; color: #999; text-shadow: 0 1px 2px rgba(0,0,0,0.95); }
+.hidden { display: none !important; }
+@media (max-width: 320px) and (max-height: 700px) { .card { min-height: -webkit-calc(100vh - 12px); min-height: calc(100vh - 12px); max-height: -webkit-calc(100vh - 12px); max-height: calc(100vh - 12px); padding: 8px 10px; } .art-box { width: 240px; max-width: 78vw; margin-bottom: 10px; } h2.marquee-inner { font-size: 1.25rem; } .track-sub.marquee-inner { font-size: 0.9rem; } .meta-container > * { margin-top: 2px; } .meta-container { margin-bottom: 3px; } .time-labels { margin-top: 4px; font-size: 0.75rem; } .progress-panel { margin-bottom: 2px; } .minimal-controls { margin-top: auto; margin-bottom: 0; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-bg" id="card-bg"></div>
+  <div class="art-box" id="art-container"><span class="art-placeholder">&#127925;</span></div>
+  <div class="marquee-container"><h2 id="title-wrap" class="marquee-inner"><span id="title">Jellyfin</span><span class="clone" id="title-clone"></span></h2></div>
+  <div class="meta-container">
+    <div class="marquee-container"><div id="artist-wrap" class="track-sub marquee-inner"><span id="artist">Connecting...</span><span class="clone" id="artist-clone"></span></div></div>
+    <div class="marquee-container"><div id="album-wrap" class="track-sub marquee-inner"><span id="album"></span><span class="clone" id="album-clone"></span></div></div>
+  </div>
+  <div class="progress-panel"><div class="track-bar"><div class="track-fill" id="track-fill"></div></div><div class="time-labels"><span id="time-elapsed">0:00</span><span id="time-duration">0:00</span></div></div>
+
+  <div class="minimal-controls" id="minimal-controls">
+    <button id="btn-shuffle" data-action="shuffle" title="Shuffle" disabled>
+      <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+    </button>
+    <button id="btn-prev" data-action="prev" title="Previous" disabled>
+      <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+    </button>
+    <button id="btn-playpause" data-action="playpause" title="Play/Pause" disabled>&#9199;</button>
+    <button id="btn-next" data-action="next" title="Next" disabled>
+      <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12h2V6h-2z"/></svg>
+    </button>
+    <button id="btn-repeat" data-action="repeat" title="Repeat" disabled>
+      <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v6z"/></svg>
+    </button>
+  </div>
+  <p class="status-note hidden" id="status-note"></p>
+</div>
+
+<script>
+/* Plain ES5 + XMLHttpRequest so it runs on old Android browsers. */
+(function () {
+  var POLL_INTERVAL_MS = 1069;
+  var EMPTY_ALBUM_TEXT = '(\uFF89\u25D5\u30EE\u25D5) \uFF89*:\uFF65\uFF9F\u2727';
+  var REPEAT_NEXT = { RepeatNone: 'RepeatOne', RepeatOne: 'RepeatAll', RepeatAll: 'RepeatNone' };
+  var PLAY_GLYPH = '\u25B6', PAUSE_GLYPH = '\u275A\u275A';
+
+  var state = { playing: false };
+  var baseElapsed = 0, baseTime = now(), duration = 0;
+  var currentArtwork = null, songSignature = '', isSending = false, pendingUntil = 0;
+
+  var raf = window.requestAnimationFrame || window.webkitRequestAnimationFrame ||
+    function (cb) { return setTimeout(cb, 250); };
+
+  function now() {
+    return (window.performance && performance.now) ? performance.now() : new Date().getTime();
+  }
+  function $(id) { return document.getElementById(id); }
+  function setText(el, text) { el.textContent = text; }
+  function hasClass(el, c) { return (' ' + el.className + ' ').indexOf(' ' + c + ' ') !== -1; }
+  function setClass(el, c, on) {
+    var has = hasClass(el, c);
+    if (on && !has) el.className = (el.className + ' ' + c).replace(/^\s+/, '');
+    if (!on && has) el.className = (' ' + el.className + ' ').replace(' ' + c + ' ', ' ').replace(/^\s+|\s+$/g, '');
+  }
+
+  function request(method, url, done) {
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      var data = null;
+      try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      done(xhr.status, data);
+    };
+    xhr.send(method === 'POST' ? '' : null);
+  }
+
+  function formatTime(secs) {
+    if (isNaN(secs) || secs <= 0) return '0:00';
+    var m = Math.floor(secs / 60), s = Math.floor(secs % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function clamp(v) { return duration > 0 ? Math.max(0, Math.min(v, duration)) : 0; }
+  function elapsedNow() {
+    return clamp(baseElapsed + (state.playing && !state.paused ? (now() - baseTime) / 1000 : 0));
+  }
+
+  function setupMarquee(prefix, text) {
+    var wrap = $(prefix + '-wrap');
+    setText($(prefix), text || '');
+    setText($(prefix + '-clone'), text || '');
+    setClass(wrap, 'is-long', false);
+    void wrap.offsetWidth; // restart the animation
+    var textWidth = $(prefix).offsetWidth;
+    if (textWidth > wrap.parentNode.clientWidth) {
+      var secs = Math.max(6, (textWidth + 60) / 30) + 's';
+      wrap.style.webkitAnimationDuration = secs;
+      wrap.style.animationDuration = secs;
+      setClass(wrap, 'is-long', true);
+    }
+  }
+
+  function updateMarquees(title, artist, album) {
+    var sig = title + '|' + artist + '|' + album;
+    if (sig === songSignature) return;
+    songSignature = sig;
+    raf(function () {
+      setupMarquee('title', title);
+      setupMarquee('artist', artist);
+      setupMarquee('album', album);
+    });
+  }
+
+  function updateArtwork(url) {
+    if (url === currentArtwork) return;
+    currentArtwork = url;
+    var box = $('art-container');
+    while (box.firstChild) box.removeChild(box.firstChild);
+    if (url) {
+      var img = document.createElement('img');
+      img.alt = 'Album art';
+      img.src = url;
+      box.appendChild(img);
+      $('card-bg').style.backgroundImage = 'url("' + url + '")';
+    } else {
+      var ph = document.createElement('span');
+      ph.className = 'art-placeholder';
+      ph.innerHTML = '&#127925;';
+      box.appendChild(ph);
+      $('card-bg').style.backgroundImage = 'none';
+    }
+  }
+
+  function updateProgress(s) {
+    var newDuration = Number(s.duration) || 0;
+    var reported = Number(s.position) || 0;
+    var estimate = elapsedNow();
+    var trackChanged = newDuration !== duration;
+    duration = newDuration;
+    // Like the Pear remote: only resync the running clock when it has drifted noticeably.
+    if (trackChanged || s.paused || state.paused || Math.abs(estimate - reported) > 3) {
+      baseElapsed = reported;
+      baseTime = now();
+    } else {
+      baseElapsed = estimate;
+      baseTime = now();
+    }
+    setText($('time-duration'), formatTime(duration));
+  }
+
+  function renderControls() {
+    var s = state;
+    var canControl = !!(s.playing && s.can_control);
+    $('btn-prev').disabled = !canControl;
+    $('btn-next').disabled = !canControl;
+    $('btn-playpause').disabled = !canControl;
+    $('btn-shuffle').disabled = !(s.playing && s.can_shuffle);
+    $('btn-repeat').disabled = !(s.playing && s.can_repeat);
+
+    setText($('btn-playpause'), !s.playing ? '\u23EF' : (s.paused ? PLAY_GLYPH : PAUSE_GLYPH));
+    setClass($('btn-shuffle'), 'active', !!(s.playing && s.shuffle));
+    var repeat = s.playing ? (s.repeat || 'RepeatNone') : 'RepeatNone';
+    setClass($('btn-repeat'), 'active-all', repeat === 'RepeatAll');
+    setClass($('btn-repeat'), 'active-one', repeat === 'RepeatOne');
+
+    var note = '';
+    if (s.error) note = s.error;
+    else if (s.playing && !s.can_control) note = (s.client || 'This player') + " doesn't accept remote commands.";
+    showNote(note);
+  }
+
+  function showNote(text) {
+    setText($('status-note'), text);
+    setClass($('status-note'), 'hidden', !text);
+  }
+
+  function render(s) {
+    if (s.playing) {
+      updateMarquees(s.title || 'Untitled', s.artist || '', s.album || EMPTY_ALBUM_TEXT);
+      updateArtwork(s.art || '');
+      updateProgress(s);
+    } else {
+      updateMarquees('Jellyfin', s.error ? "Can't reach Jellyfin" : 'Nothing playing', EMPTY_ALBUM_TEXT);
+      updateArtwork('');
+      duration = 0; baseElapsed = 0;
+      setText($('time-duration'), '0:00');
+    }
+    state = s;
+    renderControls();
+  }
+
+  function updateStatus() {
+    request('GET', '/api/state', function (status, data) {
+      // Right after a button press, skip one stale poll so the button doesn't flicker back.
+      if (now() < pendingUntil) return;
+      if (status === 200 && data) render(data);
+      else render({ playing: false, error: 'Lost connection to the remote server. Retrying...' });
+    });
+  }
+
+  function sendControl(action) {
+    if (isSending) return;
+    isSending = true;
+    // Show the result immediately; the next poll confirms it.
+    var optimistic = {};
+    for (var k in state) optimistic[k] = state[k];
+    if (action === 'playpause') optimistic.paused = !state.paused;
+    if (action === 'shuffle') optimistic.shuffle = !state.shuffle;
+    if (action === 'repeat') optimistic.repeat = REPEAT_NEXT[state.repeat || 'RepeatNone'];
+    if (action === 'playpause' || action === 'shuffle' || action === 'repeat') {
+      if (action === 'playpause') { baseElapsed = elapsedNow(); baseTime = now(); }
+      state = optimistic;
+      renderControls();
+    }
+    pendingUntil = now() + 600;
+    request('POST', '/api/control/' + action, function (status, data) {
+      isSending = false;
+      if (status !== 200) showNote((data && data.error) || "That didn't work.");
+      setTimeout(function () { pendingUntil = 0; updateStatus(); }, 250);
+    });
+  }
+
+  function animateProgress() {
+    if (state.playing && duration > 0) {
+      var e = elapsedNow();
+      setText($('time-elapsed'), formatTime(e));
+      $('track-fill').style.width = (e / duration * 100) + '%';
+    } else {
+      setText($('time-elapsed'), '0:00');
+      $('track-fill').style.width = '0%';
+    }
+    raf(animateProgress);
+  }
+
+  var buttons = $('minimal-controls').getElementsByTagName('button');
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].onclick = (function (action) {
+      return function () { if (!this.disabled) sendControl(action); };
+    })(buttons[i].getAttribute('data-action'));
+  }
+
+  updateStatus();
+  setInterval(updateStatus, POLL_INTERVAL_MS);
+  raf(animateProgress);
+})();
+</script>
+</body>
+</html>
