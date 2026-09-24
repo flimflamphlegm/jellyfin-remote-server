@@ -92,7 +92,7 @@ def supports(session, command):
     return command in supported
 
 
-def session_to_state(session, now=None):
+def session_to_state(session, now=None, no_progress_clients=()):
     if session is None:
         return {"playing": False}
 
@@ -116,6 +116,8 @@ def session_to_state(session, now=None):
     art = art_for(item)
     artists = item.get("Artists") or []
     can_control = bool(session.get("SupportsRemoteControl"))
+    silent = {c.lower() for c in no_progress_clients}
+    reports_progress = (session.get("Client") or "").lower() not in silent
     return {
         "playing": True,
         "paused": paused,
@@ -130,6 +132,7 @@ def session_to_state(session, now=None):
         "user": session.get("UserName", ""),
         "shuffle": is_shuffled(play_state),
         "repeat": play_state.get("RepeatMode") or "RepeatNone",
+        "reports_progress": reports_progress,
         "can_control": can_control,
         "can_shuffle": can_control and supports(session, "SetShuffleQueue"),
         "can_repeat": can_control and supports(session, "SetRepeatMode"),
@@ -137,11 +140,13 @@ def session_to_state(session, now=None):
 
 
 class JellyfinClient:
-    def __init__(self, base_url, api_key, device_filter="", user_filter="", timeout=4):
+    def __init__(self, base_url, api_key, device_filter="", user_filter="",
+                 no_progress_clients=("cliamp",), timeout=4):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.device_filter = device_filter
         self.user_filter = user_filter
+        self.no_progress_clients = tuple(no_progress_clients)
         self.timeout = timeout
 
     def _request(self, method, path, body=None, raw=False):
@@ -179,7 +184,8 @@ class JellyfinClient:
         return pick_session(self.sessions(), self.device_filter, self.user_filter)
 
     def now_playing(self):
-        return session_to_state(self.current_session())
+        return session_to_state(self.current_session(),
+                                no_progress_clients=self.no_progress_clients)
 
     def control(self, action):
         if action not in ACTIONS:

@@ -65,7 +65,7 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
     <div class="marquee-container"><div id="artist-wrap" class="track-sub marquee-inner"><span id="artist">Connecting...</span><span class="clone" id="artist-clone"></span></div></div>
     <div class="marquee-container"><div id="album-wrap" class="track-sub marquee-inner"><span id="album"></span><span class="clone" id="album-clone"></span></div></div>
   </div>
-  <div class="progress-panel"><div class="track-bar"><div class="track-fill" id="track-fill"></div></div><div class="time-labels"><span id="time-elapsed">0:00</span><span id="time-duration">0:00</span></div></div>
+  <div class="progress-panel" id="progress-panel"><div class="track-bar"><div class="track-fill" id="track-fill"></div></div><div class="time-labels"><span id="time-elapsed">0:00</span><span id="time-duration">0:00</span></div></div>
 
   <div class="minimal-controls" id="minimal-controls">
     <button id="btn-shuffle" data-action="shuffle" title="Shuffle" disabled>
@@ -115,6 +115,10 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
   function request(method, url, done) {
     var xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
+    if (method === 'GET') {
+      xhr.setRequestHeader('Cache-Control', 'no-cache');
+      xhr.setRequestHeader('Pragma', 'no-cache');
+    }
     xhr.onreadystatechange = function () {
       if (xhr.readyState !== 4) return;
       var data = null;
@@ -213,6 +217,9 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
     setClass($('btn-repeat'), 'active-one', repeat === 'RepeatOne');
 
     // Players that don't take remote commands get no buttons at all, just now-playing info.
+    // Players like cliamp never report position or pause, so a timer would just be a guess.
+    setClass($('progress-panel'), 'hidden', !!(s.playing && s.reports_progress === false));
+
     var noControls = !!(s.playing && !s.can_control);
     setClass($('minimal-controls'), 'hidden', noControls);
     setClass(document.querySelector ? document.querySelector('.card') : document.getElementsByTagName('div')[0], 'no-controls', noControls);
@@ -240,7 +247,8 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
   }
 
   function updateStatus() {
-    request('GET', '/api/state', function (status, data) {
+    // The timestamp stops old Android browsers from reusing a cached answer.
+    request('GET', '/api/state?_=' + new Date().getTime(), function (status, data) {
       // Right after a button press, skip one stale poll so the button doesn't flicker back.
       if (now() < pendingUntil) return;
       if (status === 200 && data) render(data);

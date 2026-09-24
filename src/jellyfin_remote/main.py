@@ -25,7 +25,8 @@ def main():
         sys.exit(f"No Jellyfin API key. Add api_key to {CONFIG_PATH} or run ./install.sh.")
 
     client = JellyfinClient(cfg.jellyfin_url, cfg.api_key,
-                            device_filter=cfg.device_filter, user_filter=cfg.user_filter)
+                            device_filter=cfg.device_filter, user_filter=cfg.user_filter,
+                            no_progress_clients=cfg.no_progress_clients)
 
     if args.check:
         try:
@@ -37,6 +38,9 @@ def main():
         if state["playing"]:
             print(f"Now playing: {state['title']} by {state['artist']} "
                   f"on {state['device']} ({state['client']}, user {state['user']})")
+            if not state["reports_progress"]:
+                print(f"Note: {state['client']} doesn't report position or pause, "
+                      "so the timer is hidden for it.")
             if not state["can_control"]:
                 print(f"Note: {state['client']} doesn't accept remote commands, "
                       "so the buttons will be disabled for it.")

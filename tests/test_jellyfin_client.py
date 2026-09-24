@@ -107,6 +107,12 @@ class StateTests(unittest.TestCase):
         s["PlayState"] = {"ShuffleMode": "Shuffle"}
         self.assertTrue(session_to_state(s)["shuffle"])
 
+    def test_players_that_dont_report_progress(self):
+        self.assertTrue(session_to_state(session(client="Jellyfin Web"))["reports_progress"])
+        cli = session(client="cliamp")
+        self.assertFalse(session_to_state(cli, no_progress_clients=["Cliamp"])["reports_progress"])
+        self.assertTrue(session_to_state(cli)["reports_progress"])
+
     def test_unsupported_toggles_are_disabled(self):
         s = session(Capabilities={"SupportedCommands": ["SetRepeatMode"]})
         state = session_to_state(s)

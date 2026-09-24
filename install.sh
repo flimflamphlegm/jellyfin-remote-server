@@ -39,6 +39,7 @@ json.dump({
     "port": int(os.environ["PORT"]),
     "device_filter": "",
     "user_filter": os.environ["JF_USER"].strip(),
+    "no_progress_clients": ["cliamp"],
 }, open(sys.argv[1], "w"), indent=2)
 PY
   chmod 600 "$CONFIG"

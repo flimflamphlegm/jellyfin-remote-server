@@ -21,7 +21,10 @@ Shuffle, previous, play/pause, next, repeat. Repeat cycles off, this song, all.
 Now-playing info works with any Jellyfin client. The controls need a client that
 accepts remote commands (the Jellyfin web player does). If yours doesn't, the page
 says so and disables the buttons. Shuffle and repeat are also disabled if the
-player doesn't advertise support for them.
+player doesn't advertise support for them. If the player doesn't accept remote
+commands at all, the buttons are hidden. Some players (cliamp, for example) don't
+report position or pause to Jellyfin either; for those, list them in
+`no_progress_clients` and the timer is hidden instead of guessing.
 
 ## Install at login
 
@@ -59,6 +62,7 @@ Open the printed URL on a device on the same network.
 | `port` | `8097` | `JELLYFIN_REMOTE_PORT` | Port the dashboard listens on |
 | `device_filter` | empty | `JELLYFIN_DEVICE_FILTER` | Only follow sessions whose device name or client contains this text |
 | `user_filter` | empty | `JELLYFIN_USER_FILTER` | Only follow sessions for this Jellyfin user name |
+| `no_progress_clients` | `["cliamp"]` | | Players that don't report position or pause; the timer is hidden for them |
 
 ## Which session it shows
 

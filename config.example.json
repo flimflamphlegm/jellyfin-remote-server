@@ -3,5 +3,6 @@
   "api_key": "paste-your-api-key-here",
   "port": 8097,
   "device_filter": "",
-  "user_filter": ""
+  "user_filter": "",
+  "no_progress_clients": ["cliamp"]
 }

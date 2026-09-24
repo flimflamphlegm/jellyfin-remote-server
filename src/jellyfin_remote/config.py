@@ -1,7 +1,7 @@
 """Settings come from config.json in the project root, then env vars override."""
 import json
 import os
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -26,6 +26,8 @@ class Config:
     device_filter: str = ""
     # Optional: only follow sessions for this Jellyfin user name (exact, case-insensitive).
     user_filter: str = ""
+    # Players that never report position or pause to Jellyfin; the page hides the timer for these.
+    no_progress_clients: list = field(default_factory=lambda: ["cliamp"])
 
 
 def load_config(path=CONFIG_PATH):
