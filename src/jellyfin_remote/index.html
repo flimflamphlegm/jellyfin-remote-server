@@ -51,6 +51,9 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
 .status-note { margin: 8px 0 0; font-size: 0.75rem; color: #999; text-shadow: 0 1px 2px rgba(0,0,0,0.95); }
 .hidden { display: none !important; }
 @media (max-width: 320px) and (max-height: 700px) { .card { min-height: -webkit-calc(100vh - 12px); min-height: calc(100vh - 12px); max-height: -webkit-calc(100vh - 12px); max-height: calc(100vh - 12px); padding: 8px 10px; } .art-box { width: 240px; max-width: 78vw; margin-bottom: 10px; } h2.marquee-inner { font-size: 1.25rem; } .track-sub.marquee-inner { font-size: 0.9rem; } .meta-container > * { margin-top: 2px; } .meta-container { margin-bottom: 3px; } .time-labels { margin-top: 4px; font-size: 0.75rem; } .progress-panel { margin-bottom: 2px; } .minimal-controls { margin-top: auto; margin-bottom: 0; } }
+/* No buttons: the card hugs its content instead of stretching, so the gap left by the
+   controls isn't spread between the title, artist and progress bar. */
+.card.no-controls { min-height: 0; -webkit-box-pack: start; -webkit-justify-content: flex-start; justify-content: flex-start; }
 </style>
 </head>
 <body>
@@ -209,10 +212,11 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
     setClass($('btn-repeat'), 'active-all', repeat === 'RepeatAll');
     setClass($('btn-repeat'), 'active-one', repeat === 'RepeatOne');
 
-    var note = '';
-    if (s.error) note = s.error;
-    else if (s.playing && !s.can_control) note = (s.client || 'This player') + " doesn't accept remote commands.";
-    showNote(note);
+    // Players that don't take remote commands get no buttons at all, just now-playing info.
+    var noControls = !!(s.playing && !s.can_control);
+    setClass($('minimal-controls'), 'hidden', noControls);
+    setClass(document.querySelector ? document.querySelector('.card') : document.getElementsByTagName('div')[0], 'no-controls', noControls);
+    showNote(s.error || '');
   }
 
   function showNote(text) {
