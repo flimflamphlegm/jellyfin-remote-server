@@ -8,19 +8,45 @@ from .config import CONFIG_PATH, load_config
 from .handler import make_handler
 from .jellyfin_client import JellyfinClient, JellyfinError
 from .net_utils import lan_ip
+from .news import NewsCache
 
 
-def render_page():
-    return (Path(__file__).resolve().parent / "index.html").read_text()
+def render_page(rotate_seconds=10):
+    html = (Path(__file__).resolve().parent / "index.html").read_text()
+    return html.replace("__NEWS_ROTATE_SECONDS__", str(int(rotate_seconds)))
+
+
+def check_feeds(news, categories):
+    data = news.refresh_now()
+    counts = {c["name"]: len(c["items"]) for c in data["categories"]}
+    for cat in categories:
+        print(f"{cat.get('name')}: {counts.get(cat.get('name'), 0)} headlines")
+        for url in cat.get("feeds", []):
+            error = news.errors.get(url)
+            print(f"  {'FAILED' if error else 'ok    '} {url}" + (f"\n         {error}" if error else ""))
+    if any("CERTIFICATE_VERIFY_FAILED" in e for e in news.errors.values()):
+        print("\nSome feeds still failed certificate checks. As a last resort, run "
+              "'Install Certificates.command' from /Applications/Python 3.x/ "
+              "(if you installed Python from python.org).")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Now-playing dashboard and remote for Jellyfin.")
     parser.add_argument("--check", action="store_true",
                         help="Test the connection to Jellyfin and exit.")
+    parser.add_argument("--check-feeds", action="store_true",
+                        help="Fetch every news feed once, report which work, and exit.")
     args = parser.parse_args()
 
     cfg = load_config()
+    news = NewsCache(cfg.news.get("categories", []),
+                     refresh_minutes=cfg.news.get("refresh_minutes", 15),
+                     per_category=cfg.news.get("per_category", 6))
+
+    if args.check_feeds:
+        check_feeds(news, cfg.news.get("categories", []))
+        return
+
     if not cfg.api_key:
         sys.exit(f"No Jellyfin API key. Add api_key to {CONFIG_PATH} or run ./install.sh.")
 
@@ -48,7 +74,7 @@ def main():
 
     try:
         server = ThreadingHTTPServer((cfg.host, cfg.port),
-                                     make_handler(client, render_page()))
+                                     make_handler(client, render_page(cfg.news.get("rotate_seconds", 10)), news))
     except OSError as e:
         if e.errno == errno.EADDRINUSE:
             # Usually another copy of this remote (desktop + SSH session). Exit cleanly

@@ -16,6 +16,40 @@ ENV_OVERRIDES = {
 }
 
 
+def default_news():
+    return {
+        "refresh_minutes": 15,
+        "per_category": 8,
+        "rotate_seconds": 10,
+        "categories": [
+            {"name": "Tech", "feeds": [
+                "https://www.theverge.com/rss/index.xml",
+                "https://feeds.arstechnica.com/arstechnica/index",
+            ]},
+            {"name": "World", "feeds": [
+                "https://feeds.bbci.co.uk/news/world/rss.xml",
+                "https://www.cbc.ca/webfeed/rss/rss-world",
+            ]},
+            {"name": "Finance", "feeds": [
+                "https://www.cnbc.com/id/20409666/device/rss/rss.html",
+                "https://www.cnbc.com/id/10000664/device/rss/rss.html",
+            ]},
+            {"name": "Vancouver", "feeds": [
+                "https://www.cbc.ca/webfeed/rss/rss-canada-britishcolumbia",
+                "https://theprovince.com/feed/",
+            ]},
+            {"name": "Japan", "feeds": [
+                "https://www.japantimes.co.jp/feed/",
+                "https://japantoday.com/feed",
+            ]},
+            {"name": "Hong Kong", "feeds": [
+                "https://hongkongfp.com/feed/",
+                "https://www.theguardian.com/world/hong-kong/rss",
+            ]},
+        ],
+    }
+
+
 @dataclass
 class Config:
     jellyfin_url: str = "http://localhost:8096"
@@ -28,6 +62,8 @@ class Config:
     user_filter: str = ""
     # Players that never report position or pause to Jellyfin; the page hides the timer for these.
     no_progress_clients: list = field(default_factory=lambda: ["cliamp"])
+    # Headlines shown when nothing is playing. Set "categories" to [] to turn news off.
+    news: dict = field(default_factory=default_news)
 
 
 def load_config(path=CONFIG_PATH):
@@ -43,4 +79,8 @@ def load_config(path=CONFIG_PATH):
     cfg = Config(**{k: v for k, v in data.items() if k in known})
     cfg.port = int(cfg.port)
     cfg.jellyfin_url = cfg.jellyfin_url.rstrip("/")
+    # A partial "news" block in config.json only overrides the keys it sets.
+    news = default_news()
+    news.update(cfg.news or {})
+    cfg.news = news
     return cfg

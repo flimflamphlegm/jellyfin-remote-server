@@ -14,6 +14,28 @@ The page uses the same styling as pear-desktop-remote-server's minimal mode. It'
 written for old Android browsers: plain ES5 JavaScript with XMLHttpRequest, no CSS
 variables or flex `gap`, and fallbacks before any `dvh`, `env()` or `calc()` value.
 
+## News
+
+**Music** and **News** buttons at the top of the card switch views, and the phone
+remembers which one you left open. News shows headlines in large text, one
+category at a time: as many as fit on the screen completely (up to four), so
+nothing is cut off and nothing scrolls. It moves on every 10 seconds, and tapping
+the headlines skips ahead.
+
+The Mac mini fetches the feeds only while the News tab is open and caches them for
+15 minutes, so the phone only ever receives a short list of titles. Out of the
+box it shows Tech (The Verge, Ars Technica), World (BBC, CBC), Finance (CNBC),
+Vancouver (CBC British Columbia, The Province), Japan (The Japan Times, Japan
+Today) and Hong Kong (Hong Kong Free Press, The Guardian).
+
+To change the feeds, add a `news` block to `config.json` (see
+`config.example.json`). Any key you leave out keeps its default, and
+`"categories": []` turns news off. Check that every feed works with:
+
+```
+python3 server.py --check-feeds
+```
+
 ## Controls
 
 Shuffle, previous, play/pause, next, repeat. Repeat cycles off, this song, all.
@@ -63,6 +85,7 @@ Open the printed URL on a device on the same network.
 | `device_filter` | empty | `JELLYFIN_DEVICE_FILTER` | Only follow sessions whose device name or client contains this text |
 | `user_filter` | empty | `JELLYFIN_USER_FILTER` | Only follow sessions for this Jellyfin user name |
 | `no_progress_clients` | `["cliamp"]` | | Players that don't report position or pause; the timer is hidden for them |
+| `news` | 6 categories | | `categories` (name + feed URLs), `refresh_minutes`, `per_category`, `rotate_seconds` |
 
 ## Which session it shows
 

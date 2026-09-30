@@ -4,5 +4,56 @@
   "port": 8097,
   "device_filter": "",
   "user_filter": "",
-  "no_progress_clients": ["cliamp"]
+  "no_progress_clients": [
+    "cliamp"
+  ],
+  "news": {
+    "refresh_minutes": 15,
+    "per_category": 8,
+    "rotate_seconds": 10,
+    "categories": [
+      {
+        "name": "Tech",
+        "feeds": [
+          "https://www.theverge.com/rss/index.xml",
+          "https://feeds.arstechnica.com/arstechnica/index"
+        ]
+      },
+      {
+        "name": "World",
+        "feeds": [
+          "https://feeds.bbci.co.uk/news/world/rss.xml",
+          "https://www.cbc.ca/webfeed/rss/rss-world"
+        ]
+      },
+      {
+        "name": "Finance",
+        "feeds": [
+          "https://www.cnbc.com/id/20409666/device/rss/rss.html",
+          "https://www.cnbc.com/id/10000664/device/rss/rss.html"
+        ]
+      },
+      {
+        "name": "Vancouver",
+        "feeds": [
+          "https://www.cbc.ca/webfeed/rss/rss-canada-britishcolumbia",
+          "https://theprovince.com/feed/"
+        ]
+      },
+      {
+        "name": "Japan",
+        "feeds": [
+          "https://www.japantimes.co.jp/feed/",
+          "https://japantoday.com/feed"
+        ]
+      },
+      {
+        "name": "Hong Kong",
+        "feeds": [
+          "https://hongkongfp.com/feed/",
+          "https://www.theguardian.com/world/hong-kong/rss"
+        ]
+      }
+    ]
+  }
 }

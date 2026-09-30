@@ -2,6 +2,7 @@
 import json
 import sys
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -13,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from jellyfin_remote.handler import make_handler  # noqa: E402
 from jellyfin_remote.jellyfin_client import JellyfinClient  # noqa: E402
 from jellyfin_remote.main import render_page  # noqa: E402
+from jellyfin_remote.news import NewsCache  # noqa: E402
 from test_jellyfin_client import ALBUM_ID, session  # noqa: E402
 
 API_KEY = "testkey"
@@ -76,7 +78,10 @@ class ServerTests(unittest.TestCase):
         cls.jf = start(FakeJellyfin)
         jf_url = f"http://127.0.0.1:{cls.jf.server_port}"
         cls.client = JellyfinClient(jf_url, API_KEY)
-        handler = make_handler(cls.client, render_page())
+        cls.news = NewsCache([{"name": "AI", "feeds": ["u"]}], fetch=lambda url: [
+            {"title": "Headline", "published": time.time(), "source": "S"}])
+        cls.news.refresh_now()
+        handler = make_handler(cls.client, render_page(), cls.news)
         handler.log_message = lambda *a: None
         cls.app = start(handler)
         cls.base = f"http://127.0.0.1:{cls.app.server_port}"
@@ -176,6 +181,15 @@ class ServerTests(unittest.TestCase):
         bad = JellyfinClient(self.client.base_url, "wrong")
         with self.assertRaisesRegex(Exception, "rejected the API key"):
             bad.sessions()
+
+    def test_news_endpoint(self):
+        _, body, _ = self.get("/api/news")
+        data = json.loads(body)
+        self.assertEqual(data["categories"][0]["items"][0]["title"], "Headline")
+
+    def test_page_has_rotation_filled_in(self):
+        _, body, _ = self.get("/")
+        self.assertNotIn(b"__NEWS_ROTATE_SECONDS__", body)
 
     def test_unknown_action(self):
         self.assertEqual(self.post("/api/control/forward")[0], 404)

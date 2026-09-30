@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Jellyfin Remote</title>
+<link rel="icon" href="data:,">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <style>
 /*
@@ -12,9 +13,17 @@
 */
 * { box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #030303; color: #fff; text-align: center; margin: 0; padding: 6px 0; padding: 6px env(safe-area-inset-right) 6px env(safe-area-inset-left); display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; min-height: 100vh; min-height: 100dvh; overflow: hidden; }
-.card { background: #131313; padding: 14px; border-radius: 20px; border: 1px solid #222; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 94%; max-width: 340px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: space-between; justify-content: space-between; margin: 0 auto; position: relative; overflow: hidden; max-height: -webkit-calc(100vh - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+.card { background: #131313; padding: 14px; border-radius: 20px; border: 1px solid #222; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 94%; max-width: 340px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: space-between; justify-content: space-between; margin: 0 auto; position: relative; overflow: hidden; max-height: -webkit-calc(100vh - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); height: 520px; height: -webkit-calc(100vh - 24px); height: calc(100vh - 24px); height: calc(100dvh - 24px); }
 /* Blurred artwork behind the card. A real element (not ::before + var()) so it works without CSS variables. */
 .card > .card-bg { position: absolute; top: -40px; right: -40px; bottom: -40px; left: -40px; background-color: #151515; background-position: center; background-size: cover; background-repeat: no-repeat; -webkit-filter: blur(28px) saturate(2.1) brightness(0.72); filter: blur(28px) saturate(2.1) brightness(0.72); opacity: 0.9; -webkit-transform: scale(1.15); transform: scale(1.15); z-index: 0; pointer-events: none; }
+/* No album art: a soft Rose Quartz / Serenity wash instead of plain black. */
+.card.idle > .card-bg { background-color: #c6b9dd; background-image: -webkit-linear-gradient(120deg, #f2c4c6, #c6b9dd 50%, #92a8d1); background-image: -webkit-radial-gradient(18% 22%, circle, rgba(247,202,201,0.95), rgba(247,202,201,0) 46%), -webkit-radial-gradient(12% 78%, circle, rgba(240,186,192,0.95), rgba(240,186,192,0) 40%), -webkit-radial-gradient(84% 30%, circle, rgba(146,168,209,0.95), rgba(146,168,209,0) 46%), -webkit-radial-gradient(78% 86%, circle, rgba(124,150,204,0.95), rgba(124,150,204,0) 42%), -webkit-radial-gradient(52% 52%, circle, rgba(196,184,222,0.95), rgba(196,184,222,0) 34%), -webkit-radial-gradient(60% 8%, circle, rgba(226,230,242,0.95), rgba(226,230,242,0) 30%), -webkit-linear-gradient(120deg, #f2c4c6, #c6b9dd 50%, #92a8d1); background-image: radial-gradient(circle at 18% 22%, rgba(247,202,201,0.95), rgba(247,202,201,0) 46%), radial-gradient(circle at 12% 78%, rgba(240,186,192,0.95), rgba(240,186,192,0) 40%), radial-gradient(circle at 84% 30%, rgba(146,168,209,0.95), rgba(146,168,209,0) 46%), radial-gradient(circle at 78% 86%, rgba(124,150,204,0.95), rgba(124,150,204,0) 42%), radial-gradient(circle at 52% 52%, rgba(196,184,222,0.95), rgba(196,184,222,0) 34%), radial-gradient(circle at 60% 8%, rgba(226,230,242,0.95), rgba(226,230,242,0) 30%), linear-gradient(120deg, #f2c4c6, #c6b9dd 50%, #92a8d1); -webkit-filter: blur(16px) saturate(1.25) brightness(1); filter: blur(16px) saturate(1.25) brightness(1); opacity: 1; }
+/* A bit more shade over the light colors so white text stays readable. */
+.card.idle::after { background: rgba(30,26,60,0.16); }
+.card.idle .news-meta { color: #f4f1f8; text-shadow: 0 1px 2px rgba(40,30,70,0.55); }
+.card.idle .news-title, .card.idle .news-cat { text-shadow: 0 1px 3px rgba(40,30,70,0.55), 0 0 12px rgba(40,30,70,0.35); }
+.card.idle .news-list li, .card.idle .news-head { border-color: rgba(255,255,255,0.25); }
+.card.idle .art-placeholder { opacity: 0.45; }
 .card::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(10,10,10,0.22); z-index: 1; pointer-events: none; }
 .art-box { width: 100%; position: relative; z-index: 2; margin: 0 auto 4px; background: transparent; border: none; border-radius: 0; overflow: visible; -webkit-flex-shrink: 0; flex-shrink: 0; }
 .art-box::after { content: ""; display: block; padding-bottom: 100%; }
@@ -32,12 +41,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 @-webkit-keyframes marquee-scroll { 0%, 10% { -webkit-transform: translateX(0); } 90%, 100% { -webkit-transform: translateX(-50%); } }
 @keyframes marquee-scroll { 0%, 10% { transform: translateX(0); } 90%, 100% { transform: translateX(-50%); } }
 .marquee-inner.is-long { -webkit-animation: marquee-scroll 8s linear infinite; animation: marquee-scroll 8s linear infinite; }
-h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.9); line-height: 1.1; padding-bottom: 0; }
-.track-sub.marquee-inner { margin: 0; font-size: 1.05rem; font-weight: 500; line-height: 1.2; color: #e0e0e0; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.85); }
+h2.marquee-inner { margin: 0; font-size: 1.9rem; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.9); line-height: 1.1; padding-bottom: 0; }
+.track-sub.marquee-inner { margin: 0; font-size: 1.3rem; font-weight: 500; line-height: 1.2; color: #e0e0e0; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.85); }
 .progress-panel { margin-bottom: 4px; width: 100%; pointer-events: none; -webkit-flex-shrink: 0; flex-shrink: 0; }
 .track-bar { width: 100%; height: 6px; background: #282828; border-radius: 4px; overflow: hidden; }
 .track-fill { background: #fff; height: 100%; width: 0%; }
-.time-labels { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #ddd; text-shadow: 0 1px 2px rgba(0,0,0,0.95); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.time-labels { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; justify-content: space-between; font-size: 1rem; font-weight: 600; color: #ddd; text-shadow: 0 1px 2px rgba(0,0,0,0.95); margin-top: 8px; font-variant-numeric: tabular-nums; }
 .minimal-controls { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; margin: 10px 0; -webkit-flex-shrink: 0; flex-shrink: 0; margin-top: auto; margin-bottom: 0; }
 .minimal-controls button { background: #212121; color: #aaa; border: 1px solid #333; width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin: 0 2px; padding: 0; border-radius: 10px; cursor: pointer; touch-action: manipulation; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; font-size: 0.95rem; font-weight: bold; font-family: inherit; }
 .minimal-controls button:active { -webkit-transform: scale(0.95); transform: scale(0.95); background: #333; }
@@ -50,15 +59,34 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
 .minimal-controls button[disabled]:active { -webkit-transform: none; transform: none; background: #212121; }
 .status-note { margin: 8px 0 0; font-size: 0.75rem; color: #999; text-shadow: 0 1px 2px rgba(0,0,0,0.95); }
 .hidden { display: none !important; }
-@media (max-width: 320px) and (max-height: 700px) { .card { min-height: -webkit-calc(100vh - 12px); min-height: calc(100vh - 12px); max-height: -webkit-calc(100vh - 12px); max-height: calc(100vh - 12px); padding: 8px 10px; } .art-box { width: 240px; max-width: 78vw; margin-bottom: 10px; } h2.marquee-inner { font-size: 1.25rem; } .track-sub.marquee-inner { font-size: 0.9rem; } .meta-container > * { margin-top: 2px; } .meta-container { margin-bottom: 3px; } .time-labels { margin-top: 4px; font-size: 0.75rem; } .progress-panel { margin-bottom: 2px; } .minimal-controls { margin-top: auto; margin-bottom: 0; } }
+@media (max-width: 320px) and (max-height: 700px) { .card { height: -webkit-calc(100vh - 12px); height: calc(100vh - 12px); min-height: -webkit-calc(100vh - 12px); min-height: calc(100vh - 12px); max-height: -webkit-calc(100vh - 12px); max-height: calc(100vh - 12px); padding: 8px 10px; } .art-box { width: 240px; max-width: 78vw; margin-bottom: 10px; } h2.marquee-inner { font-size: 1.6rem; } .track-sub.marquee-inner { font-size: 1.1rem; } .meta-container > * { margin-top: 2px; } .meta-container { margin-bottom: 3px; } .time-labels { margin-top: 4px; font-size: 0.9rem; } .progress-panel { margin-bottom: 2px; } .minimal-controls { margin-top: auto; margin-bottom: 0; } }
 /* No buttons: the card hugs its content instead of stretching, so the gap left by the
    controls isn't spread between the title, artist and progress bar. */
 .card.no-controls { min-height: 0; -webkit-box-pack: start; -webkit-justify-content: flex-start; justify-content: flex-start; }
+/* Music / News tabs at the top of the card. */
+.view-tabs { display: -webkit-box; display: -webkit-flex; display: flex; margin: 0 0 10px; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.view-tabs button { -webkit-box-flex: 1; -webkit-flex: 1; flex: 1; height: 36px; margin: 0 2px; padding: 0; background: #212121; color: #aaa; border: 1px solid #333; border-radius: 10px; font-family: inherit; font-size: 0.95rem; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+.view-tabs button:active { -webkit-transform: scale(0.97); transform: scale(0.97); }
+.view-tabs button.on { background: #3a3a3a; border-color: #555; color: #fff; }
+/* News view. */
+.card.news-mode { height: 520px; height: -webkit-calc(100vh - 24px); height: calc(100vh - 24px); min-height: 0; -webkit-box-pack: start; -webkit-justify-content: flex-start; justify-content: flex-start; }
+.card.news-mode > .art-box, .card.news-mode > .marquee-container, .card.news-mode > .meta-container, .card.news-mode > .progress-panel, .card.news-mode > .minimal-controls { display: none !important; }
+.news { text-align: left; cursor: pointer; overflow: hidden; -webkit-box-flex: 1; -webkit-flex: 1; flex: 1; }
+.news-head { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; justify-content: space-between; -webkit-box-align: center; -webkit-align-items: center; align-items: center; margin: 2px 2px 6px; }
+.news-cat { font-size: 2.1rem; line-height: 1.1; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.95); }
+.news-dots span { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: #3a3a3a; margin-left: 5px; }
+.news-dots span.on { background: #fff; }
+.news-list { list-style: none; margin: 0; padding: 0; }
+.news-list li { padding: 12px 2px; border-top: 1px solid #2a2a2a; }
+.news-title { font-size: 1.5rem; font-weight: 700; line-height: 1.22; color: #f2f2f2; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.news-meta { font-size: 0.95rem; font-weight: 600; color: #8a8a8a; margin-top: 4px; }
+@media (max-width: 320px) and (max-height: 700px) { .view-tabs { margin-bottom: 6px; } .view-tabs button { height: 32px; } .card.news-mode { height: -webkit-calc(100vh - 12px); height: calc(100vh - 12px); } .news-cat { font-size: 1.9rem; } .news-title { font-size: 1.4rem; } .news-list li { padding: 10px 2px; } }
 </style>
 </head>
 <body>
-<div class="card">
+<div class="card idle">
   <div class="card-bg" id="card-bg"></div>
+  <div class="view-tabs" id="view-tabs"><button type="button" data-view="music" class="on">Music</button><button type="button" data-view="news">News</button></div>
   <div class="art-box" id="art-container"><span class="art-placeholder">&#127925;</span></div>
   <div class="marquee-container"><h2 id="title-wrap" class="marquee-inner"><span id="title">Jellyfin</span><span class="clone" id="title-clone"></span></h2></div>
   <div class="meta-container">
@@ -82,6 +110,10 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
       <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v6z"/></svg>
     </button>
   </div>
+  <div class="news hidden" id="news">
+    <div class="news-head"><span class="news-cat" id="news-cat">News</span><span class="news-dots" id="news-dots"></span></div>
+    <ul class="news-list" id="news-list"></ul>
+  </div>
   <p class="status-note hidden" id="status-note"></p>
 </div>
 
@@ -91,6 +123,8 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
   var POLL_INTERVAL_MS = 1069;
   var EMPTY_ALBUM_TEXT = '(\uFF89\u25D5\u30EE\u25D5) \uFF89*:\uFF65\uFF9F\u2727';
   var REPEAT_NEXT = { RepeatNone: 'RepeatOne', RepeatOne: 'RepeatAll', RepeatAll: 'RepeatNone' };
+  var NEWS_ROTATE_MS = __NEWS_ROTATE_SECONDS__ * 1000;
+  var MAX_HEADLINES = 4;
   var PLAY_GLYPH = '\u25B6', PAUSE_GLYPH = '\u275A\u275A';
 
   var state = { playing: false };
@@ -112,20 +146,37 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
     if (!on && has) el.className = (' ' + el.className + ' ').replace(' ' + c + ' ', ' ').replace(/^\s+|\s+$/g, '');
   }
 
+  // Every request gives up after REQUEST_TIMEOUT_MS. Without this, requests left hanging by a
+  // Wi-Fi drop use up the few connections an old browser allows and the page freezes.
+  var REQUEST_TIMEOUT_MS = 5000;
   function request(method, url, done) {
     var xhr = new XMLHttpRequest();
-    xhr.open(method, url, true);
-    if (method === 'GET') {
-      xhr.setRequestHeader('Cache-Control', 'no-cache');
-      xhr.setRequestHeader('Pragma', 'no-cache');
-    }
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState !== 4) return;
+    var finished = false;
+    function finish(status, text) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
       var data = null;
-      try { data = JSON.parse(xhr.responseText); } catch (e) {}
-      done(xhr.status, data);
+      try { data = JSON.parse(text); } catch (e) {}
+      done(status, data);
+    }
+    var timer = setTimeout(function () {
+      try { xhr.abort(); } catch (e) {}
+      finish(0, '');
+    }, REQUEST_TIMEOUT_MS);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) finish(xhr.status, xhr.responseText);
     };
-    xhr.send(method === 'POST' ? '' : null);
+    try {
+      xhr.open(method, url, true);
+      if (method === 'GET') {
+        xhr.setRequestHeader('Cache-Control', 'no-cache');
+        xhr.setRequestHeader('Pragma', 'no-cache');
+      }
+      xhr.send(method === 'POST' ? '' : null);
+    } catch (e) {
+      finish(0, '');
+    }
   }
 
   function formatTime(secs) {
@@ -175,12 +226,14 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
       img.src = url;
       box.appendChild(img);
       $('card-bg').style.backgroundImage = 'url("' + url + '")';
+      setClass(document.querySelector('.card'), 'idle', false);
     } else {
       var ph = document.createElement('span');
       ph.className = 'art-placeholder';
       ph.innerHTML = '&#127925;';
       box.appendChild(ph);
-      $('card-bg').style.backgroundImage = 'none';
+      $('card-bg').style.backgroundImage = ''; // let the .idle gradient show
+      setClass(document.querySelector('.card'), 'idle', true);
     }
   }
 
@@ -244,11 +297,197 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
     }
     state = s;
     renderControls();
+    applyMode();
+    fitArt();
   }
 
+  /* ---- News view, switched with the Music / News tabs ---- */
+  var newsData = null, newsIndex = 0, newsOffset = 0, newsShown = 0, newsFetchedAt = -1e12, newsInFlight = false, lastRotate = now();
+  var card = document.querySelector('.card');
+  var viewMode = 'music';
+  try { if (window.localStorage && localStorage.getItem('view') === 'news') viewMode = 'news'; } catch (e) {}
+
+  function hasNews() {
+    return !!(newsData && newsData.categories && newsData.categories.length);
+  }
+  function inNewsMode() { return viewMode === 'news'; }
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    var mins = Math.floor((new Date().getTime() / 1000 - ts) / 60);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + 'h ago';
+    return Math.floor(hours / 24) + 'd ago';
+  }
+
+  function renderNewsMessage(text) {
+    setText($('news-cat'), 'News');
+    var dots = $('news-dots'), list = $('news-list');
+    while (dots.firstChild) dots.removeChild(dots.firstChild);
+    while (list.firstChild) list.removeChild(list.firstChild);
+    var li = document.createElement('li');
+    var msg = document.createElement('div');
+    msg.className = 'news-meta';
+    setText(msg, text);
+    li.appendChild(msg);
+    list.appendChild(li);
+  }
+
+  function renderNews() {
+    if (!hasNews()) {
+      renderNewsMessage(newsData ? "Couldn't load headlines. Retrying..." : 'Loading headlines...');
+      return;
+    }
+    var cats = newsData.categories;
+    if (newsIndex >= cats.length) { newsIndex = 0; newsOffset = 0; }
+    var cat = cats[newsIndex];
+    if (newsOffset >= cat.items.length) newsOffset = 0;
+    setText($('news-cat'), cat.name);
+
+    var dots = $('news-dots');
+    while (dots.firstChild) dots.removeChild(dots.firstChild);
+    for (var d = 0; d < cats.length; d++) {
+      var dot = document.createElement('span');
+      if (d === newsIndex) dot.className = 'on';
+      dots.appendChild(dot);
+    }
+
+    var list = $('news-list');
+    while (list.firstChild) list.removeChild(list.firstChild);
+    for (var i = newsOffset; i < Math.min(newsOffset + MAX_HEADLINES, cat.items.length); i++) {
+      var item = cat.items[i];
+      var li = document.createElement('li');
+      var title = document.createElement('div');
+      title.className = 'news-title';
+      setText(title, item.title);
+      var meta = document.createElement('div');
+      meta.className = 'news-meta';
+      var ago = timeAgo(item.published);
+      setText(meta, item.source + (ago ? ', ' + ago : ''));
+      li.appendChild(title);
+      li.appendChild(meta);
+      list.appendChild(li);
+    }
+
+    // Drop headlines that don't fit completely, so nothing is cut off and nothing scrolls.
+    var bottom = $('news').getBoundingClientRect().bottom;
+    while (list.childNodes.length > 1 &&
+           list.lastChild.getBoundingClientRect().bottom > bottom + 1) {
+      list.removeChild(list.lastChild);
+    }
+    newsShown = list.childNodes.length;
+  }
+
+  // Next headlines in this category, or the start of the next category.
+  function advanceNews() {
+    if (!hasNews()) return;
+    var cat = newsData.categories[newsIndex] || { items: [] };
+    newsOffset += Math.max(1, newsShown);
+    if (newsOffset >= cat.items.length) { newsOffset = 0; newsIndex++; }
+    lastRotate = now();
+    renderNews();
+  }
+
+
+  // The card is a fixed, full-screen height, so size the album art to whatever
+  // space the text, progress bar and buttons leave over (it stays square).
+  function px(style, prop) { var v = parseFloat(style[prop]); return isNaN(v) ? 0 : v; }
+  function fitArt() {
+    if (inNewsMode() || !window.getComputedStyle) return;
+    var box = $('art-container');
+    var cs = getComputedStyle(card);
+    var innerH = card.clientHeight - px(cs, 'paddingTop') - px(cs, 'paddingBottom');
+    var innerW = card.clientWidth - px(cs, 'paddingLeft') - px(cs, 'paddingRight');
+    var used = px(getComputedStyle(box), 'marginBottom');
+    var kids = card.children;
+    for (var k = 0; k < kids.length; k++) {
+      var el = kids[k];
+      if (el === box || el.id === 'card-bg' || !el.offsetHeight) continue;
+      var st = getComputedStyle(el);
+      if (st.position === 'absolute') continue;
+      // The controls' top margin is "auto" (it soaks up free space), so don't count it.
+      used += el.offsetHeight + px(st, 'marginBottom') + (el.id === 'minimal-controls' ? 10 : px(st, 'marginTop'));
+    }
+    var room = innerH - used - 6;
+    var size = Math.max(96, Math.floor(Math.min(innerW, room)));
+    box.style.maxWidth = 'none'; // the small-screen stylesheet caps it at 78vw
+    box.style.width = size + 'px';
+    // If the art is already as wide as the card, split the spare height above the
+    // art and above the buttons instead of leaving one big gap.
+    box.style.marginTop = Math.max(0, Math.floor((room - size) / 2)) + 'px';
+  }
+
+  window.onresize = function () {
+    if (inNewsMode()) { if (hasNews()) renderNews(); } else fitArt();
+  };
+
+  function applyMode() {
+    var news = inNewsMode();
+    if (news && !hasNews()) maybeFetchNews(); // first open: don't wait for the timer
+    setClass(card, 'news-mode', news);
+    setClass($('news'), 'hidden', !news);
+    if (news) renderNews();
+  }
+
+  function fetchNews() {
+    if (newsInFlight) return;
+    newsInFlight = true;
+    request('GET', '/api/news?_=' + new Date().getTime(), function (status, data) {
+      newsInFlight = false;
+      newsFetchedAt = now();
+      if (status === 200 && data) {
+        // Keep the last good headlines if a refresh comes back empty.
+        if ((data.categories && data.categories.length) || !hasNews()) newsData = data;
+        if (inNewsMode()) renderNews();
+      }
+    });
+  }
+
+  function maybeFetchNews() {
+    if (!inNewsMode()) return; // only fetch while the News tab is open
+    var loading = !hasNews();
+    // Every minute normally; every few seconds while the Mac mini is still fetching the first batch.
+    if (now() - newsFetchedAt > (loading ? 4000 : 60000)) fetchNews();
+  }
+
+  function rotateNews() {
+    if (!inNewsMode() || now() - lastRotate < NEWS_ROTATE_MS) return;
+    advanceNews();
+  }
+
+  function setView(mode) {
+    viewMode = mode;
+    try { if (window.localStorage) localStorage.setItem('view', mode); } catch (e) {}
+    var tabs = $('view-tabs').getElementsByTagName('button');
+    for (var t = 0; t < tabs.length; t++) setClass(tabs[t], 'on', tabs[t].getAttribute('data-view') === mode);
+    lastRotate = now();
+    songSignature = ''; // re-measure the scrolling titles when the music view comes back
+    applyMode();
+    if (mode === 'music') fitArt();
+    if (mode === 'music') updateMarquees(state.playing ? (state.title || 'Untitled') : 'Jellyfin',
+      state.playing ? (state.artist || '') : (state.error ? "Can't reach Jellyfin" : 'Nothing playing'),
+      state.playing ? (state.album || EMPTY_ALBUM_TEXT) : EMPTY_ALBUM_TEXT);
+  }
+
+  var tabButtons = $('view-tabs').getElementsByTagName('button');
+  for (var tb = 0; tb < tabButtons.length; tb++) {
+    tabButtons[tb].onclick = (function (mode) {
+      return function () { setView(mode); };
+    })(tabButtons[tb].getAttribute('data-view'));
+  }
+  if (viewMode === 'news') setView('news');
+
+  $('news').onclick = advanceNews;
+
+  var pollInFlight = false;
   function updateStatus() {
+    if (pollInFlight) return; // never stack polls on top of a slow one
+    pollInFlight = true;
     // The timestamp stops old Android browsers from reusing a cached answer.
     request('GET', '/api/state?_=' + new Date().getTime(), function (status, data) {
+      pollInFlight = false;
       // Right after a button press, skip one stale poll so the button doesn't flicker back.
       if (now() < pendingUntil) return;
       if (status === 200 && data) render(data);
@@ -299,6 +538,8 @@ h2.marquee-inner { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; 
 
   updateStatus();
   setInterval(updateStatus, POLL_INTERVAL_MS);
+  setInterval(maybeFetchNews, 2000);
+  setInterval(rotateNews, 1000);
   raf(animateProgress);
 })();
 </script>
