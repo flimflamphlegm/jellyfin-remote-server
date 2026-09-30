@@ -78,7 +78,7 @@ h2.marquee-inner { margin: 0; font-size: 1.9rem; font-weight: 700; color: #fff; 
 .news-dots span.on { background: #fff; }
 .news-list { list-style: none; margin: 0; padding: 0; }
 .news-list li { padding: 12px 2px; border-top: 1px solid #2a2a2a; }
-.news-title { font-size: 1.5rem; font-weight: 700; line-height: 1.22; color: #f2f2f2; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.news-title { font-size: 1.5rem; font-weight: 700; line-height: 1.22; color: #f2f2f2; }
 .news-meta { font-size: 0.95rem; font-weight: 600; color: #8a8a8a; margin-top: 4px; }
 @media (max-width: 320px) and (max-height: 700px) { .view-tabs { margin-bottom: 6px; } .view-tabs button { height: 32px; } .card.news-mode { height: -webkit-calc(100vh - 12px); height: calc(100vh - 12px); } .news-cat { font-size: 1.9rem; } .news-title { font-size: 1.4rem; } .news-list li { padding: 10px 2px; } }
 </style>
@@ -376,6 +376,16 @@ h2.marquee-inner { margin: 0; font-size: 1.9rem; font-weight: 700; color: #fff; 
     while (list.childNodes.length > 1 &&
            list.lastChild.getBoundingClientRect().bottom > bottom + 1) {
       list.removeChild(list.lastChild);
+    }
+    // A single headline too long to fit even on its own: shrink its text a step at a time.
+    var only = list.childNodes.length === 1 ? list.firstChild : null;
+    if (only) {
+      var titleEl = only.firstChild;
+      var base = parseFloat(window.getComputedStyle ? getComputedStyle(titleEl).fontSize : 0) || 0;
+      for (var scale = 0.9; base && scale >= 0.55 &&
+           only.getBoundingClientRect().bottom > bottom + 1; scale -= 0.05) {
+        titleEl.style.fontSize = Math.floor(base * scale) + 'px';
+      }
     }
     newsShown = list.childNodes.length;
   }

@@ -18,8 +18,9 @@ variables or flex `gap`, and fallbacks before any `dvh`, `env()` or `calc()` val
 
 **Music** and **News** buttons at the top of the card switch views, and the phone
 remembers which one you left open. News shows headlines in large text, one
-category at a time: as many as fit on the screen completely (up to four), so
-nothing is cut off and nothing scrolls. It moves on every 10 seconds, and tapping
+category at a time: always the full headline, and as many as fit on the screen
+completely (up to four), so nothing is cut off and nothing scrolls. A headline
+too long to fit even on its own gets slightly smaller text. It moves on every 10 seconds, and tapping
 the headlines skips ahead.
 
 The Mac mini fetches the feeds only while the News tab is open and caches them for
